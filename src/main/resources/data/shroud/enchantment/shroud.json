@@ -1,0 +1,23 @@
+
+{
+  "description": {
+    "translate": "enchantment.shroud.shroud"
+  },
+  "supported_items": "#shroud:enchantable/shroud_weapons",
+  "primary_items": "#shroud:enchantable/shroud_weapons",
+  "weight": 2,
+  "max_level": 3,
+  "min_cost": {
+    "base": 10,
+    "per_level_above_first": 8
+  },
+  "max_cost": {
+    "base": 100,
+    "per_level_above_first": 8
+  },
+  "anvil_cost": 4,
+  "slots": [
+    "mainhand"
+  ],
+  "effects": {}
+}
