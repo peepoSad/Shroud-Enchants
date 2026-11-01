@@ -1,4 +1,5 @@
-
 {
-  "enchantment.shroud.shroud": "Shroud"
+    "enchantment.shroud.shroud": "Shroud",
+    "enchantment.shroud.misty_step": "Void Step",
+    "key.shroud.misty_step": "Misty Step"
 }

@@ -1,6 +1,11 @@
 
 package com.shroud.enchantments;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -19,15 +24,23 @@ import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.neoforged.neoforge.event.AnvilUpdateEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
+
 
 @EventBusSubscriber(modid = ShroudMod.MODID)
 public class ShroudEvents {
+        private static final Map<UUID, Integer> SHROUD_TICKS = new HashMap<>();
 
     private static final ResourceKey<Enchantment> SHROUD_KEY =
             ResourceKey.create(
                     Registries.ENCHANTMENT,
                     ResourceLocation.fromNamespaceAndPath("shroud", "shroud")
             );
+    private static final ResourceKey<Enchantment> MISTY_STEP_KEY =
+        ResourceKey.create(
+                Registries.ENCHANTMENT,
+                ResourceLocation.fromNamespaceAndPath("shroud", "misty_step")
+        );
 
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
@@ -82,21 +95,73 @@ public class ShroudEvents {
                 false,
                 true
         ));
-    }
-    @SubscribeEvent
-    public static void onAnvilUpdate(AnvilUpdateEvent event) {
-            ShroudMod.LOGGER.info(
-        "Shroud anvil debug: left={}, right={}",
-        event.getLeft(),
-        event.getRight()
+        // Mark this player as being under Shroud.
+        SHROUD_TICKS.put(player.getUUID(), durationTicks);
+        // Tell every connected client that this player is hidden.
+        PacketDistributor.sendToAllPlayers(
+                new ShroudVisibilityPayload(player.getUUID(), true)
 );
+
+        // Make nearby mobs immediately lose this player as a target.
+        for (Mob mob : player.level().getEntitiesOfClass(
+                Mob.class,
+                player.getBoundingBox().inflate(64)
+        )) {
+        if (mob.getTarget() == player) {
+                mob.setTarget(null);
+        }
+        }
+    }
+
+        @SubscribeEvent
+        public static void onMobChangeTarget(LivingChangeTargetEvent event) {
+        if (!(event.getNewAboutToBeSetTarget() instanceof Player player)) {
+                return;
+        }
+
+        if (SHROUD_TICKS.containsKey(player.getUUID())) {
+                event.setCanceled(true);
+        }
+        }
+
+        @SubscribeEvent
+        public static void onPlayerTick(PlayerTickEvent.Post event) {
+        Player player = event.getEntity();
+
+        if (player.level().isClientSide()) {
+                return;
+        }
+
+        UUID playerId = player.getUUID();
+        Integer remaining = SHROUD_TICKS.get(playerId);
+
+        if (remaining == null) {
+                return;
+        }
+
+        if (remaining <= 1) {
+                SHROUD_TICKS.remove(playerId);
+
+                // Tell every connected client that Shroud has expired.
+                PacketDistributor.sendToAllPlayers(
+                        new ShroudVisibilityPayload(playerId, false)
+                );
+        } else {
+                SHROUD_TICKS.put(playerId, remaining - 1);
+        }
+        }
+
+    
+        @SubscribeEvent
+        public static void onAnvilUpdate(AnvilUpdateEvent event) {
         ItemStack target = event.getLeft();
         ItemStack book = event.getRight();
 
         // Only handle enchanted books.
-        if (target.isEmpty() || !book.is(net.minecraft.world.item.Items.ENCHANTED_BOOK)) {
-            return;
-    }
+        if (target.isEmpty()
+                || !book.is(net.minecraft.world.item.Items.ENCHANTED_BOOK)) {
+                return;
+        }
 
         var enchantmentRegistry = event.getPlayer().level()
                 .registryAccess()
@@ -105,30 +170,37 @@ public class ShroudEvents {
         Holder<Enchantment> shroud =
                 enchantmentRegistry.get(SHROUD_KEY).orElse(null);
 
-        if (shroud == null) {
-            return;
-    }
+        Holder<Enchantment> mistyStep =
+                enchantmentRegistry.get(MISTY_STEP_KEY).orElse(null);
 
-        // Check the enchantments stored inside the book.
-        int shroudLevel =
-                EnchantmentHelper.getEnchantmentsForCrafting(book).getLevel(shroud);
+        var bookEnchantments =
+                EnchantmentHelper.getEnchantmentsForCrafting(book);
 
-        if (shroudLevel <= 0) {
-            return;
+        // Check Shroud compatibility.
+        if (shroud != null && bookEnchantments.getLevel(shroud) > 0) {
+                boolean allowed =
+                        target.getItem() instanceof SwordItem
+                        || target.getItem() instanceof BowItem;
+
+                if (!allowed) {
+                event.setOutput(ItemStack.EMPTY);
+                event.setCanceled(true);
+                return;
+                }
         }
 
-        // Shroud books may only be applied to swords and bows.
-        boolean allowed =
-                target.getItem() instanceof SwordItem
-                || target.getItem() instanceof BowItem;
+        // Check Misty Step compatibility.
+        if (mistyStep != null && bookEnchantments.getLevel(mistyStep) > 0) {
+                boolean allowed =
+                        target.getItem() instanceof net.minecraft.world.item.ArmorItem armor
+                        && armor.getEquipmentSlot()
+                                == net.minecraft.world.entity.EquipmentSlot.FEET;
 
-        if (!allowed) {
-            event.setOutput(ItemStack.EMPTY);
-                ShroudMod.LOGGER.info(
-        "Shroud anvil debug: blocking incompatible target {}",
-        target.getItem()
-);
-            event.setCanceled(true);
+                if (!allowed) {
+                event.setOutput(ItemStack.EMPTY);
+                event.setCanceled(true);
+                }
         }
-}
+        }
+
 }
