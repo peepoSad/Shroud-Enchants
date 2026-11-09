@@ -4,13 +4,13 @@ package com.shroud.enchantments;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public record MistyStepPayload() implements CustomPacketPayload {
 
     public static final Type<MistyStepPayload> TYPE =
             new Type<>(
-                    ResourceLocation.fromNamespaceAndPath(
+                    Identifier.fromNamespaceAndPath(
                             ShroudMod.MODID,
                             "misty_step"
                     )

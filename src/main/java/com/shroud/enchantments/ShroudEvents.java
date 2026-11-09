@@ -4,43 +4,48 @@ package com.shroud.enchantments;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-import net.minecraft.world.item.SwordItem;
-import net.minecraft.world.item.BowItem;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.neoforged.neoforge.event.AnvilUpdateEvent;
+import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
-
 
 @EventBusSubscriber(modid = ShroudMod.MODID)
 public class ShroudEvents {
-        private static final Map<UUID, Integer> SHROUD_TICKS = new HashMap<>();
+
+    private static final Map<UUID, Integer> SHROUD_TICKS = new HashMap<>();
 
     private static final ResourceKey<Enchantment> SHROUD_KEY =
             ResourceKey.create(
                     Registries.ENCHANTMENT,
-                    ResourceLocation.fromNamespaceAndPath("shroud", "shroud")
+                    Identifier.parse("shroud:shroud")
             );
+
     private static final ResourceKey<Enchantment> MISTY_STEP_KEY =
-        ResourceKey.create(
-                Registries.ENCHANTMENT,
-                ResourceLocation.fromNamespaceAndPath("shroud", "misty_step")
-        );
+            ResourceKey.create(
+                    Registries.ENCHANTMENT,
+                    Identifier.parse("shroud:misty_step")
+            );
 
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
@@ -72,10 +77,8 @@ public class ShroudEvents {
         ItemStack weapon = player.getMainHandItem();
 
         // Only swords and bows may activate Shroud.
-        if (!(weapon.getItem() instanceof
-                net.minecraft.world.item.SwordItem)
-                && !(weapon.getItem() instanceof
-                net.minecraft.world.item.BowItem)) {
+        if (!weapon.is(ItemTags.SWORDS)
+                && !weapon.is(ItemTags.BOW_ENCHANTABLE)) {
             return;
         }
 
@@ -95,72 +98,73 @@ public class ShroudEvents {
                 false,
                 true
         ));
+
         // Mark this player as being under Shroud.
         SHROUD_TICKS.put(player.getUUID(), durationTicks);
+
         // Tell every connected client that this player is hidden.
         PacketDistributor.sendToAllPlayers(
                 new ShroudVisibilityPayload(player.getUUID(), true)
-);
+        );
 
         // Make nearby mobs immediately lose this player as a target.
         for (Mob mob : player.level().getEntitiesOfClass(
                 Mob.class,
                 player.getBoundingBox().inflate(64)
         )) {
-        if (mob.getTarget() == player) {
+            if (mob.getTarget() == player) {
                 mob.setTarget(null);
-        }
+            }
         }
     }
 
-        @SubscribeEvent
-        public static void onMobChangeTarget(LivingChangeTargetEvent event) {
+    @SubscribeEvent
+    public static void onMobChangeTarget(LivingChangeTargetEvent event) {
         if (!(event.getNewAboutToBeSetTarget() instanceof Player player)) {
-                return;
+            return;
         }
 
         if (SHROUD_TICKS.containsKey(player.getUUID())) {
-                event.setCanceled(true);
+            event.setCanceled(true);
         }
-        }
+    }
 
-        @SubscribeEvent
-        public static void onPlayerTick(PlayerTickEvent.Post event) {
+    @SubscribeEvent
+    public static void onPlayerTick(PlayerTickEvent.Post event) {
         Player player = event.getEntity();
 
         if (player.level().isClientSide()) {
-                return;
+            return;
         }
 
         UUID playerId = player.getUUID();
         Integer remaining = SHROUD_TICKS.get(playerId);
 
         if (remaining == null) {
-                return;
+            return;
         }
 
         if (remaining <= 1) {
-                SHROUD_TICKS.remove(playerId);
+            SHROUD_TICKS.remove(playerId);
 
-                // Tell every connected client that Shroud has expired.
-                PacketDistributor.sendToAllPlayers(
-                        new ShroudVisibilityPayload(playerId, false)
-                );
+            // Tell every connected client that Shroud has expired.
+            PacketDistributor.sendToAllPlayers(
+                    new ShroudVisibilityPayload(playerId, false)
+            );
         } else {
-                SHROUD_TICKS.put(playerId, remaining - 1);
+            SHROUD_TICKS.put(playerId, remaining - 1);
         }
-        }
+    }
 
-    
-        @SubscribeEvent
-        public static void onAnvilUpdate(AnvilUpdateEvent event) {
+    @SubscribeEvent
+    public static void onAnvilUpdate(AnvilUpdateEvent event) {
         ItemStack target = event.getLeft();
         ItemStack book = event.getRight();
 
         // Only handle enchanted books.
         if (target.isEmpty()
                 || !book.is(net.minecraft.world.item.Items.ENCHANTED_BOOK)) {
-                return;
+            return;
         }
 
         var enchantmentRegistry = event.getPlayer().level()
@@ -178,29 +182,29 @@ public class ShroudEvents {
 
         // Check Shroud compatibility.
         if (shroud != null && bookEnchantments.getLevel(shroud) > 0) {
-                boolean allowed =
-                        target.getItem() instanceof SwordItem
-                        || target.getItem() instanceof BowItem;
+            boolean allowed =
+                    target.is(ItemTags.SWORDS)
+                    || target.is(ItemTags.BOW_ENCHANTABLE);
 
-                if (!allowed) {
+            if (!allowed) {
                 event.setOutput(ItemStack.EMPTY);
                 event.setCanceled(true);
                 return;
-                }
+            }
         }
 
-        // Check Misty Step compatibility.
+        // Check VoidStep compatibility.
         if (mistyStep != null && bookEnchantments.getLevel(mistyStep) > 0) {
-                boolean allowed =
-                        target.getItem() instanceof net.minecraft.world.item.ArmorItem armor
-                        && armor.getEquipmentSlot()
-                                == net.minecraft.world.entity.EquipmentSlot.FEET;
+            Equippable equippable =
+                    target.get(DataComponents.EQUIPPABLE);
 
-                if (!allowed) {
+            boolean allowed = equippable != null
+                    && equippable.slot() == EquipmentSlot.FEET;
+
+            if (!allowed) {
                 event.setOutput(ItemStack.EMPTY);
                 event.setCanceled(true);
-                }
+            }
         }
-        }
-
+    }
 }
