@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.1.0
+## v2.1.0
 
 - End City treasure chests now generate exactly one Void Step enchanted book alongside their vanilla loot. Previously generated chest contents are unaffected.
 - Void Step is mutually exclusive with Feather Falling, Depth Strider, Frost Walker, and Soul Speed in either anvil application order. Existing items retain their enchantments.
