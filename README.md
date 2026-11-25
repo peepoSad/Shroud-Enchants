@@ -1,25 +1,21 @@
+# Shroud Enchantments
 
-Installation information
-=======
+Shroud Enchantments adds two enchantments for Minecraft 26.3 with NeoForge 26.3.0.101. Install the mod JAR in the `mods` folder on the client and, for multiplayer, on the server.
 
-This template repository can be directly cloned to get you started with a new
-mod. Simply create a new repository cloned from this one, by following the
-instructions provided by [GitHub](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
+## Shroud
 
-Once you have your clone, simply open the repository in the IDE of your choice. The usual recommendation for an IDE is either IntelliJ IDEA or Eclipse.
+Shroud is available at levels I–III for swords and bows. Obtain it through the enchanting table or apply a Shroud enchanted book with an anvil.
 
-If at any point you are missing libraries in your IDE, or you've run into problems you can
-run `gradlew --refresh-dependencies` to refresh the local cache. `gradlew clean` to reset everything 
-{this does not affect your code} and then start the process again.
+When you kill a mob while holding a Shroud-enchanted sword or bow in your main hand, you become invisible for one second per enchantment level. Your armor and held items are hidden while Shroud is active. Nearby mobs targeting you lose their target, and mobs cannot newly target you until Shroud wears off.
 
-Mapping Names:
-============
-By default, the MDK is configured to use the official mapping names from Mojang for methods and fields 
-in the Minecraft codebase. These names are covered by a specific license. All modders should be aware of this
-license. For the latest license text, refer to the mapping file itself, or the reference copy here:
-https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
+## Void Step
 
-Additional Resources: 
-==========
-Community Documentation: https://docs.neoforged.net/  
-NeoForged Discord: https://discord.neoforged.net/
+Each End City treasure chest generates exactly one Void Step enchanted book alongside its vanilla loot when its contents first generate. Void Step is unavailable through standard enchanting tables, villager trades, fishing, and generic enchanted loot.
+
+Apply the book to boots with an anvil. Void Step is a single-level enchantment and displays as **Void Step** without a level numeral. It is mutually exclusive with Feather Falling, Depth Strider, Frost Walker, and Soul Speed. Other armor enchantments, including Protection, Unbreaking, Mending, and Thorns, remain compatible subject to the usual vanilla rules.
+
+Wear the enchanted boots and press **G** to teleport in the direction you are looking, up to **30 blocks**. You can change the keybind in Controls. Each successful teleport consumes **one Ender Pearl** from your inventory. Void Step has **no cooldown**.
+
+Existing enchanted items retain their enchantments. End City chests whose contents have already generated keep their contents. Chests that still have pending loot use the updated loot rules when their contents generate.
+
+See [CHANGELOG.md](CHANGELOG.md) for release changes.

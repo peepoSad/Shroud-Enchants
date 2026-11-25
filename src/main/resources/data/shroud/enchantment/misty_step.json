@@ -4,6 +4,7 @@
   },
   "supported_items": "#minecraft:enchantable/foot_armor",
   "primary_items": "#minecraft:enchantable/foot_armor",
+  "exclusive_set": "#shroud:exclusive_set/void_step",
   "weight": 5,
   "max_level": 1,
   "min_cost": {
